@@ -52,26 +52,25 @@ jobs:
             echo "include ':app'" > settings.gradle
           fi
           
-          # নতুন করে ফ্রেশ ও পরিষ্কার build.gradle তৈরি করা (কোনো ব্যাকস্ল্যাশ ছাড়া)
-          if [ ! -f "build.gradle" ] && [ ! -f "build.gradle.kts" ]; then
-            cat << 'EOF' > build.gradle
-            buildscript {
-                repositories {
-                    google()
-                    mavenCentral()
-                }
-                dependencies {
-                    classpath 'com.android.tools.build:gradle:8.2.0'
-                }
-            }
-            allprojects {
-                repositories {
-                    google()
-                    mavenCentral()
-                }
-            }
+          # রুট build.gradle ফাইলে কটলিন প্লাগইন এবং রিপোজিটরি সঠিকভাবে যুক্ত করা
+          cat << 'EOF' > build.gradle
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.0'
+                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0'
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
           EOF
-          fi
           
           # গ্রেডল র‍্যাপার জেনারেট করা
           gradle wrapper --gradle-version 8.2
