@@ -1,0 +1,48 @@
+name: Build Android APK from ZIP
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Unzip Project Files
+        run: |
+          # এখানে আপনার আপলোড করা জিপ ফাইলের নাম যদি gms_project.zip ছাড়া অন্য কিছু হয়, তবে gms_project.zip কেটে সেই নাম দিন
+          unzip gms_project.zip -d extracted_project
+          
+          # যদি জিপের ভেতরেই android ফোল্ডার থাকে, তবে সেটাকে মেইন ডিরেক্টরিতে নিয়ে আসা
+          if [ -d "extracted_project/android" ]; then
+            mv extracted_project/* .
+          elif [ -d "extracted_project/gms_project/android" ]; then
+            mv extracted_project/gms_project/* .
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
