@@ -18,21 +18,14 @@ jobs:
         run: |
           unzip android.zip -d extracted_project
           
-          # gradlew ফাইলটি ঠিক কোথায় আছে তা খুঁজে বের করা
-          GRADLEW_PATH=$(find extracted_project -name "gradlew" -print -quit)
-          
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "Error: gradlew file not found anywhere in the ZIP archive!"
-            exit 1
+          # জিপ ফাইলের ভেতরের সঠিক রুট ডিরেক্টরি খুঁজে বের করা
+          if [ -d "extracted_project/android" ]; then
+            mv extracted_project/android/* . 2>/dev/null || true
+            mv extracted_project/android/.* . 2>/dev/null || true
+          else
+            mv extracted_project/* . 2>/dev/null || true
+            mv extracted_project/.* . 2>/dev/null || true
           fi
-          
-          # যেখানে gradlew আছে, তার প্যারেন্ট ফোল্ডারটি খুঁজে বের করা
-          ANDROID_DIR=$(dirname "$GRADLEW_PATH")
-          echo "Found Android root directory at: $ANDROID_DIR"
-          
-          # ভেতরের সব ফাইল মেইন ডিরেক্টরিতে নিয়ে আসা যেন গিটহাব কাজ করতে পারে
-          mv "$ANDROID_DIR"/* . 2>/dev/null || true
-          mv "$ANDROID_DIR"/.* . 2>/dev/null || true
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -40,13 +33,27 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Generate Missing Gradle Files
+        run: |
+          # যদি প্রজেক্টে gradlew ফাইল না থাকে, তবে নতুন করে জেনারেট করা হবে
+          if [ ! -f "gradlew" ]; then
+            echo "Gradlew missing. Generating a fresh wrapper..."
+            gradle wrapper --gradle-version 8.2
+          fi
+          
+          # যদি রুট লেভেলে settings.gradle না থাকে, তবে সেটি তৈরি করা
+          if [ ! -f "settings.gradle" ] && [ ! -f "settings.gradle.kts" ]; then
+            echo "include ':app'" > settings.gradle
+          fi
+          
+          chmod +x gradlew
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
       - name: Build Debug APK
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
