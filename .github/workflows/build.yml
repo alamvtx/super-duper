@@ -17,14 +17,22 @@ jobs:
       - name: Unzip Project Files
         run: |
           unzip android.zip -d extracted_project
-          if [ -d "extracted_project/android" ]; then
-            mv extracted_project/* .
-          elif [ -d "extracted_project/app" ]; then
-            # যদি জিপের ভেতরে সরাসরি অ্যাপ ফাইল থাকে
-            mv extracted_project/* android/ 2>/dev/null || mv extracted_project .
-          else
-            mv extracted_project/* .
+          
+          # gradlew ফাইলটি ঠিক কোথায় আছে তা খুঁজে বের করা
+          GRADLEW_PATH=$(find extracted_project -name "gradlew" -print -quit)
+          
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "Error: gradlew file not found anywhere in the ZIP archive!"
+            exit 1
           fi
+          
+          # যেখানে gradlew আছে, তার প্যারেন্ট ফোল্ডারটি খুঁজে বের করা
+          ANDROID_DIR=$(dirname "$GRADLEW_PATH")
+          echo "Found Android root directory at: $ANDROID_DIR"
+          
+          # ভেতরের সব ফাইল মেইন ডিরেক্টরিতে নিয়ে আসা যেন গিটহাব কাজ করতে পারে
+          mv "$ANDROID_DIR"/* . 2>/dev/null || true
+          mv "$ANDROID_DIR"/.* . 2>/dev/null || true
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -37,7 +45,6 @@ jobs:
 
       - name: Build Debug APK
         run: |
-          cd android || cd .
           chmod +x gradlew
           ./gradlew assembleDebug
 
