@@ -18,7 +18,7 @@ jobs:
         run: |
           unzip android.zip -d extracted_project
           
-          # build.gradle ফাইলটি জিপের ঠিক কোন ফোল্ডারে লুকিয়ে আছে তা খুঁজে বের করা
+          # build.gradle ফাইলটি কোথায় আছে তা খুঁজে বের করা
           BG_PATH=$(find extracted_project -name "build.gradle" -print -quit)
           
           if [ -z "$BG_PATH" ]; then
@@ -26,11 +26,9 @@ jobs:
             exit 1
           fi
           
-          # যেখানে build.gradle আছে, তার প্যারেন্ট ফোল্ডারটি বের করা (যেমন: app বা android)
           APP_DIR=$(dirname "$BG_PATH")
           echo "Found build.gradle at: $APP_DIR"
           
-          # যদি এটি 'app' ফোল্ডার হয়, তবে এর বাইরের মূল অ্যান্ড্রয়েড কনফিগারেশন তৈরি করা
           if [[ "$APP_DIR" == *"app" ]]; then
             PARENT_DIR=$(dirname "$APP_DIR")
             echo "Moving files from parent: $PARENT_DIR"
@@ -49,22 +47,33 @@ jobs:
 
       - name: Force Generate Android Build Files
         run: |
-          # রুট লেভেলে settings.gradle বা build.gradle নিশ্চিত করা
+          # রুট লেভেলে settings.gradle নিশ্চিত করা
           if [ ! -f "settings.gradle" ] && [ ! -f "settings.gradle.kts" ]; then
             echo "include ':app'" > settings.gradle
           fi
           
+          # নতুন করে ফ্রেশ ও পরিষ্কার build.gradle তৈরি করা (কোনো ব্যাকস্ল্যাশ ছাড়া)
           if [ ! -f "build.gradle" ] && [ ! -f "build.gradle.kts" ]; then
             cat << 'EOF' > build.gradle
             buildscript {
-                repositories { google() \n mavenCentral() }
-                dependencies { classpath 'com.android.tools.build:gradle:8.2.0' }
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+                dependencies {
+                    classpath 'com.android.tools.build:gradle:8.2.0'
+                }
             }
-            allprojects { repositories { google() \n mavenCentral() } }
+            allprojects {
+                repositories {
+                    google()
+                    mavenCentral()
+                }
+            }
           EOF
           fi
           
-          # ফ্রেশ গ্রেডল র‍্যাপার জেনারেট করা
+          # গ্রেডল র‍্যাপার জেনারেট করা
           gradle wrapper --gradle-version 8.2
           chmod +x gradlew
 
