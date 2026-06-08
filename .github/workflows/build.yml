@@ -61,7 +61,7 @@ jobs:
               }
               dependencies {
                   classpath 'com.android.tools.build:gradle:8.2.0'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0'
+                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22'
               }
           }
           allprojects {
@@ -71,17 +71,16 @@ jobs:
               }
           }
           EOF
-          
-          # গ্রেডল র‍্যাপার জেনারেট করা
-          gradle wrapper --gradle-version 8.2
-          chmod +x gradlew
 
-      - name: Setup Gradle
+      - name: Setup Gradle 8.2 explicitly
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.2
 
       - name: Build Debug APK
         run: |
-          ./gradlew assembleDebug --stacktrace
+          # গ্লোবাল নতুন গ্রেডল বাদ দিয়ে সরাসরি ইনস্টল করা গ্রেডল ভার্সন দিয়ে রান করা
+          gradle assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
