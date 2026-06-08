@@ -1,4 +1,4 @@
-name: Build Android APK from ZIP
+name: Build Android APK Genuine
 
 on:
   push:
@@ -14,30 +14,8 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Unzip and Move Files Safely
-        run: |
-          unzip android.zip -d extracted_project
-          
-          # build.gradle ফাইলটি কোথায় আছে তা খুঁজে বের করা
-          BG_PATH=$(find extracted_project -name "build.gradle" -print -quit)
-          
-          if [ -z "$BG_PATH" ]; then
-            echo "Error: build.gradle file not found anywhere in the ZIP archive!"
-            exit 1
-          fi
-          
-          APP_DIR=$(dirname "$BG_PATH")
-          echo "Found build.gradle at: $APP_DIR"
-          
-          if [[ "$APP_DIR" == *"app" ]]; then
-            PARENT_DIR=$(dirname "$APP_DIR")
-            echo "Moving files from parent: $PARENT_DIR"
-            mv "$PARENT_DIR"/* . 2>/dev/null || true
-            mv "$PARENT_DIR"/.* . 2>/dev/null || true
-          else
-            mv "$APP_DIR"/* . 2>/dev/null || true
-            mv "$APP_DIR"/.* . 2>/dev/null || true
-          fi
+      - name: Unzip Code
+        run: unzip android.zip -d .
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -45,46 +23,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Force Generate Android Build Files
-        run: |
-          # রুট লেভেলে settings.gradle নিশ্চিত করা
-          if [ ! -f "settings.gradle" ] && [ ! -f "settings.gradle.kts" ]; then
-            echo "include ':app'" > settings.gradle
-          fi
-          
-          # রুট build.gradle ফাইলে কটলিন প্লাগইন এবং রিপোজিটরি সঠিকভাবে যুক্ত করা
-          cat << 'EOF' > build.gradle
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.0'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22'
-              }
-          }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          EOF
-
-      - name: Setup Gradle 8.2 explicitly
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.2
 
       - name: Build Debug APK
         run: |
-          # গ্লোবাল নতুন গ্রেডল বাদ দিয়ে সরাসরি ইনস্টল করা গ্রেডল ভার্সন দিয়ে রান করা
-          gradle assembleDebug --stacktrace
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: |
-            **/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/apk/debug/*.apk
